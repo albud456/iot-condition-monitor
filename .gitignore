@@ -1,0 +1,60 @@
+# -------------------------
+# Build output (IDF & CMake)
+# -------------------------
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/compile_commands.json
+/Makefile
+
+# Compiled binaries
+*.elf
+*.bin
+*.map
+*.hex
+
+# -------------------------
+# SDKConfig files (auto-generated)
+# -------------------------
+/sdkconfig
+/sdkconfig.old
+/sdkconfig.defaults.user
+
+# -------------------------
+# ESP-IDF temporary / intermediate files
+# -------------------------
+/idf_component.yml
+/.vscode/
+/.idea/
+/.esp-idf-tools/
+
+# -------------------------
+# PlatformIO (optional)
+# -------------------------
+.pio/
+
+# -------------------------
+# Python cache & temp files
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+*.swp
+
+# -------------------------
+# OS-specific hidden files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Misc
+# -------------------------
+*.bin.tmp
+*.elf.tmp
+*.lst
+*.dmp
+*.out
