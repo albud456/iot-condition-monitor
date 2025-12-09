@@ -8,24 +8,19 @@
  * @copyright Copyright (c) 2025
  * 
  */
-/*
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
-#include <bme680.h>
-
-#include <esp_log.h>
 
 #include "led_interface.h"
-*/
-
 #include "nvs_flash.h"
 #include "wifi_app.h"
 
-//static const char *TAG = "temp-detect";
+static const char *TAG = "temp-detect";
 
 void app_main(void)
 {
@@ -35,9 +30,11 @@ void app_main(void)
     {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
-    }    
+    }   
     ESP_ERROR_CHECK(ret);
 
     //Start the Wifi
     wifi_app_start();
+    rgb_led_wifi_app_started();
+
 }

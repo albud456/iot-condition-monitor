@@ -17,7 +17,7 @@
 
 //Wifi app settings
 #define WIFI_AP_SSID            "ESP_Monitor_Device"    //access point name
-#define WIFI_AP_PASSWORD        "karmen"                //password to connect
+#define WIFI_AP_PASSWORD        "123456789"             //password to connect
 #define WIFI_AP_CHANNEL         1                       //ap channel used
 #define WIFI_AP_SSID_HIDDEN     0                       //0 - hidden, 1 - visible
 #define WIFI_AP_MAX_CONNECTIONS 2                       //max num devices that can connect

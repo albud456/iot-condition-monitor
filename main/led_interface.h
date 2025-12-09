@@ -42,21 +42,6 @@ void rgb_led_http_server_started(void);
  * 
  */
 void rgb_led_wifi_connected(void);
-/**
- * @brief create an rmt device and configure the RMT peripheral for addressable LED
- * 
- */
-void configure_led_rmt(void);
-/**
- * @brief 
- * 
- */
-void configure_led_gpio(void);
-/**
- * @brief 
- * 
- */
-void blink_led(void);
 
 
 

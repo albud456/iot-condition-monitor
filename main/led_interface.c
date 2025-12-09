@@ -18,8 +18,30 @@
 */
 static uint8_t s_led_state = 0;
 static led_strip_handle_t led_strip;
+static bool rmt_active_flag = false;
 
 static const char TAG[] = "led_strip";
+
+static void rgb_init_led_rmt(void)
+{
+    ESP_LOGI(TAG, "Initialized RMT connection to LED.. setting parameters");
+    /* LED strip initialization with the GPIO and pixels number*/
+    led_strip_config_t strip_config = {
+        .strip_gpio_num = BLINK_GPIO,
+        .max_leds = 1, // at least one LED on board
+    };
+    led_strip_rmt_config_t rmt_config = {
+        .resolution_hz = 10 * 1000 * 1000, // 10MHz
+        .flags.with_dma = false,
+    };
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
+
+    /* Set all LED off to clear all pixels */
+    led_strip_clear(led_strip);
+    
+    //indicate the device has been initialized
+    rmt_active_flag = true;
+}
 
 static void blink_led(void)
 {
@@ -38,6 +60,7 @@ static void blink_led(void)
 
 void rgb_led_wifi_app_started(void)
 {
+    if(!rmt_active_flag) rgb_init_led_rmt();
     led_strip_set_pixel(led_strip, 0, 255, 102, 255);
     led_strip_refresh(led_strip);
     gpio_set_level(BLINK_GPIO, 1);
@@ -45,47 +68,20 @@ void rgb_led_wifi_app_started(void)
 
 void rgb_led_http_server_started(void)
 {
+    if(!rmt_active_flag) rgb_init_led_rmt();
     led_strip_set_pixel(led_strip, 0, 204, 255, 51);
     led_strip_refresh(led_strip);
     gpio_set_level(BLINK_GPIO, 1);
 }
 
 void rgb_led_wifi_connected(void)
-{    
+{   
+    if(!rmt_active_flag) rgb_init_led_rmt();
     led_strip_set_pixel(led_strip, 0, 0, 255, 153);
     led_strip_refresh(led_strip);
     gpio_set_level(BLINK_GPIO, 1);
 }
 
-void configure_led_rmt(void)
-{
-    ESP_LOGI(TAG, "Example configured to blink addressable LED!");
-    /* LED strip initialization with the GPIO and pixels number*/
-    led_strip_config_t strip_config = {
-        .strip_gpio_num = BLINK_GPIO,
-        .max_leds = 1, // at least one LED on board
-    };
-    led_strip_rmt_config_t rmt_config = {
-        .resolution_hz = 10 * 1000 * 1000, // 10MHz
-        .flags.with_dma = false,
-    };
-    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
 
-    /* Set all LED off to clear all pixels */
-    led_strip_clear(led_strip);
-}
 
-void blink_led_gpio(void)
-{
-    /* Set the GPIO level according to the state (LOW or HIGH)*/
-    gpio_set_level(BLINK_GPIO, s_led_state);
-}
-
-void configure_led_gpio(void)
-{
-    ESP_LOGI(TAG, "Example configured to blink GPIO LED!");
-    gpio_reset_pin(BLINK_GPIO);
-    /* Set the GPIO as a push/pull output */
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-}
 
