@@ -11,6 +11,7 @@
 #ifndef TASKS_COMMON_H_
 #define TASKS_COMMON_H_
 
+
 //wifi app task
 #define WIFI_APP_TASK_STACK_SIZE        4096
 #define WIFI_APP_TASK_PRIORITY          5
@@ -25,5 +26,10 @@
 #define HTTP_SERVER_MONITOR_STACK_SIZE  4096
 #define HTTP_SERVER_MONITOR_PRIORITY    3
 #define HTTP_SERVER_MONITOR_CORE_ID     0
+
+//DHT22 Temp & Humidity sensor task
+#define DHT22_TASK_STACK_SIZE           4096
+#define DHT22_TASK_PRIORITY             5
+#define DHT22_TASK_CORE_ID              0
 
 #endif
