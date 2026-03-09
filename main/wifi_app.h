@@ -14,6 +14,7 @@
 #include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_wifi.h"
 
 //Wifi app settings
 #define WIFI_AP_SSID            "ESP_Monitor_Device"    //access point name
@@ -43,7 +44,10 @@ typedef enum wifi_app_message
 {
     WIFI_APP_MSG_START_HTTP_SERVER = 0,
     WIFI_APP_MSG_CONNECTING_FROM_HTTP_SERVER,
-    WIFI_APP_MSG_STATION_CONNECTED_WITH_IP,
+    WIFI_APP_MSG_STA_CONNECTED_WITH_IP,
+    WIFI_APP_MSG_USER_REQUESTED_STA_DISCONNECT,
+    WIFI_APP_MSG_LOAD_SAVED_CREDENTIALS,
+    WIFI_APP_MSG_STA_DISCONNECTED
 } wifi_app_msg_e;
 
 /**
@@ -68,5 +72,10 @@ BaseType_t wifi_app_send_message(wifi_app_msg_e msgID);
  */
 void wifi_app_start(void);
 
+/**
+ * @brief gets the wifi configuration
+ * 
+ */
+wifi_config_t* wifi_app_get_wifi_config(void);
 
 #endif /*WIFI_APP_H_*/

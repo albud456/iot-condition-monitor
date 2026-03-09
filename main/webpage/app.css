@@ -1,7 +1,7 @@
 
 
 body {
-    background-color: #f1f1f1;
+    background-color: #cecece;
     font-family: HelveticaNeueRegular, HelveticaNeue-Regular, "Helvetica Neue Regular", HelveticaNeue, "Helvetica Neue", Helvetica, Arial;
     color: #0272B7;
 }
@@ -30,6 +30,13 @@ h4 {
     color: #1d3557;
 }
 
+.gr {
+    color: green;
+}
+.rd {
+    color: red;
+}
+
 #latest_firmware, #latest_firmware_label {
 	display:inline;
 }
@@ -45,6 +52,38 @@ h4 {
 #humidity_reading {
 	display:inline;
 	color: #1d3557;
+}
+
+#connect_ap_label, #connected_ap {
+    display:inline;
+}
+
+#ip_address_label, #netmask_label, #gateway_label {
+    display:inline;
+}
+
+#wifi_connect_ip, #wifi_connect_netmask, #wifi_connect_gateway {
+    display:inline;
+}
+
+#connected_ap {
+    color: #1d3557;
+}
+
+#wifi_connect_ip {
+    color: #1d3557;
+}
+
+#wifi_connect_netmask {
+    color: #1d3557;
+}
+
+#wifi_connect_gateway {
+    color: #1d3557;
+}
+
+#disconnect_wifi {
+    display: none;
 }
 
 .buttons {

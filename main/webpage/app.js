@@ -3,6 +3,7 @@
  */
 var seconds 	= null;
 var otaTimerVar =  null;
+var wifiConnectInterval = null;
 
 /**
  * Initialize functions here.
@@ -10,7 +11,15 @@ var otaTimerVar =  null;
 $(document).ready(function(){
 	getUpdateStatus();
 	startDHTSensorInterval();
+    getConnectInfo();
+    $("#connect_wifi").on("click", function(){
+        checkCredentials();
+    });
+    $("#disconnect_wifi").on("click", function(){
+        disconnectWifi();
+    });
 });   
+
 
 /**
  * Gets file name and size for display on the web page.
@@ -134,4 +143,153 @@ function getDHTSensorValues()
 function startDHTSensorInterval()
 {
 	setInterval(getDHTSensorValues, 5000);
+}
+/**
+ * Clears the connection status interval
+ */
+function stopWiFiConnectStatusInterval()
+{
+    if(wifiConnectInterval != null)
+    {
+        clearInterval(wifiConnectInterval);
+        wifiConnectInterval = null;
+    }
+}
+/**
+ * Gets the wifi connection status
+ */
+function getWiFiConnectStatus()
+{
+    var xhr = new XMLHttpRequest();
+    var requestURL = "/wifiConnectStatus.json";
+    xhr.open('GET', requestURL, false);
+    xhr.send('wifi_connect_status');
+    
+    if(xhr.readyState == 4 && xhr.status == 200)
+    {
+        var response = JSON.parse(xhr.responseText);
+        document.getElementById("wifi_connect_status").innerHTML = "Connecting...";
+
+        if(response.wifi_connect_status == 2)
+        {
+            document.getElementById("wifi_connect_status").innerHTML = "<h4 class='rd'> Failed to connect. Check credentials</h4>";
+            stopWiFiConnectStatusInterval();
+        }
+        else if (response.wifi_connect_status == 3)
+        {
+            document.getElementById("wifi_connect_status").innerHTML = "<h4 class='gr'> Connection success! </h4>";
+            stopWiFiConnectStatusInterval();  
+            getConnectInfo();
+        }
+    }
+}
+/**
+ * Starts the interval for checking the connection status
+ */
+function startWiFiConnectStatusInterval()
+{
+    wifiConnectInterval = setInterval(getWiFiConnectStatus, 2800);
+}
+/**
+ * Connect Wifi function called using the SSID and password entered by user
+ */
+function connectWifi()
+{
+    //get the SSID and password
+    selectedSSID = $("#connect_ssid").val();
+    pwd = $("#connect_pass").val();
+
+    $.ajax({
+        url: '/wifiConnect.json',
+        dataType: 'json',
+        method: 'POST',
+        cache: false,
+        headers: {'my-connect-ssid': selectedSSID, 'my-connect-pwd': pwd},
+        data: {'timestamp': Date.now()}
+    });
+
+    startWiFiConnectStatusInterval();
+}
+/**
+ * Checks credentials on connect_wifi button click
+ */
+function checkCredentials()
+{
+    errorList = "";
+    credsOK = true;
+
+    selectedSSID = $("#connect_ssid").val();
+    pwd = $("#connect_pass").val();
+
+    if(selectedSSID == '')
+    {
+        errorList += "<h4 class='rd'>SSID cannot be empty!</h4>";
+        credsOK = false;
+    }
+    if(pwd == '')
+    {
+        errorList += "<h4 class='rd'>Password cannot be empty!</h4>";
+        credsOK = false;
+    }
+    if(credsOK == false){
+        $("#wifi_connect_credentials_errors").html(errorList);
+    }
+    else{
+        $("#wifi_connect_credentials_errors").html("");
+        connectWifi();
+    }
+}
+/**
+ * shows password if box is checked
+ */
+function showPassword()
+{
+    var x = document.getElementById("connect_pass");
+    if (x.type === "password")
+    {
+        x.type = "text";
+    }
+    else
+    {
+        x.type = "password";
+    }
+}
+
+/**
+ * Gets the connection information for displaying on the webpage
+ */
+function getConnectInfo()
+{
+    $.getJSON('/wifiConnectInfo.json', function(data)
+    {
+        $("#connected_ap_label").html("Connected to: ");
+        $("#connected_ap").text(data["ap"]);
+        
+        $("#ip_address_label").html("IP Address: ");
+        $("#wifi_connect_ip").text(data["ip"]);
+
+        $("#netmask_label").html("Netmask: ");
+        $("#wifi_connect_netmask").text(data["netmask"]);
+
+        $("#gateway_label").html("Gateway: ");
+        $("#wifi_connect_gateway").text(data["gateway"]);
+
+        document.getElementById('disconnect_wifi').style.display = 'block';
+    });
+}
+
+/**
+ * Disconnects wifi once the disconnect button is pressed. Reloads the webpage
+ */
+function disconnectWifi()
+{
+    $.ajax({
+        url: '/wifiDisconnect.json',
+        dataType: 'json',
+        method: 'DELETE',
+        cache: false,
+        data: {'timestamp': Date.now()}
+    });
+    //update the webpage
+    setTimeout("location.reload(true);", 2000);
 }

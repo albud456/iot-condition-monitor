@@ -23,7 +23,7 @@ typedef struct {
 
 } rgb_led_t;
 
-static void blink_led(void);
+//static void blink_led(void);
 
 /**
  * @brief sets LED on with unique color indicate wifi has started

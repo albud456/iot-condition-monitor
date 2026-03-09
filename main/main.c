@@ -20,12 +20,14 @@
 #include "nvs_flash.h"
 #include "wifi_app.h"
 #include "DHT22.h"
+#include "wifi_reset_button.h"
 
 static const char *TAG = "temp-detect";
 
 void app_main(void)
 {
-    
+    ESP_LOGI(TAG, "Starting Server..");
+
     esp_err_t ret = nvs_flash_init();
     //These errors can be resolved by flashing and retrying
    if(ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -37,6 +39,8 @@ void app_main(void)
 
     //Start the Wifi
     wifi_app_start();
+    //wifi reset button
+    wifi_reset_button_config();
     //start DHT22 task
     DHT22_task_start();
     //vTaskStartScheduler();

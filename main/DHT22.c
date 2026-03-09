@@ -246,13 +246,13 @@ static void DHT22_task(void *pvParameter)
 
 		errorHandler(ret);
 
-		printf("Hum %.1f\n", getHumidity());
-		printf("Tmp %.1f\n", getTemperature());
-		ESP_LOGI(TAG, "Tmp %.1f\n", getTemperature() );
+		printf("Humidity %.1f\n", getHumidity());
+		printf("Temperature %.1f\n", getTemperature());
+		//ESP_LOGI(TAG, "Tmp %.1f\n", getTemperature() );
 
 		// Wait at least 2 seconds before reading again
 		// The interval of the whole process must be more than 2 seconds
-		vTaskDelay(4000 / portTICK_PERIOD_MS);
+		vTaskDelay(30000 / portTICK_PERIOD_MS);
 	}
 }
 

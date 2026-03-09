@@ -77,7 +77,7 @@ void rgb_led_http_server_started(void)
 void rgb_led_wifi_connected(void)
 {   
     if(!rmt_active_flag) rgb_init_led_rmt();
-    led_strip_set_pixel(led_strip, 0, 0, 255, 153);
+    led_strip_set_pixel(led_strip, 0, 60, 0, 200);
     led_strip_refresh(led_strip);
     gpio_set_level(BLINK_GPIO, 1);
 }

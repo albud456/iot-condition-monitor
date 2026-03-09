@@ -16,6 +16,19 @@
 #define OTA_UPDATE_FAILED       -1
 
 #define OTA_BUFFER_START        "\r\n\r\n"
+
+/**
+ * connection status for wifi
+ */
+typedef enum http_server_connect_status
+{
+    NONE = 0,
+    HTTP_WIFI_STATUS_CONNECTING,
+    HTTP_WIFI_STATUS_CONNECT_FAILED,
+    HTTP_WIFI_STATUS_CONNECT_SUCCESS,
+    HTTP_WIFI_STATUS_DISCONNECTED,
+} http_server_connect_status_e;
+
 /**
  * @brief Messages for the HTTP monitor
  * 
@@ -24,6 +37,7 @@ typedef enum {
     HTTP_MSG_WIFI_CONNECT_INIT = 0,
     HTTP_MSG_WIFI_CONNECT_SUCCESS,
     HTTP_MSG_WIFI_CONNECT_FAIL,
+    HTTP_MSG_WIFI_USER_DISCONNECT,
     HTTP_MSG_OTA_UPDATE_INITIALIZED,
     HTTP_MSG_OTA_UPDATE_SUCCESS,
     HTTP_MSG_OTA_UPDATE_FAIL,

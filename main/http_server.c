@@ -14,6 +14,7 @@
 #include "esp_timer.h"
 #include "sys/param.h"
 #include <inttypes.h>
+#include "esp_wifi.h"
 
 #include <DHT22.h>
 #include "http_server.h"
@@ -23,6 +24,9 @@
 
 //Tag used for ESP serial console messages
 static const char *TAG = "http_server";
+
+//Wifi connect status
+static int g_wifi_connect_status = NONE;
 
 //firmware update status
 static int g_fw_update_status = OTA_UPDATE_PENDING;
@@ -94,12 +98,19 @@ static void http_server_monitor(void *parameter)
             {
                 case HTTP_MSG_WIFI_CONNECT_INIT:
                     ESP_LOGI(TAG, "HTTP_MSG_WIFI_CONNECT_INIT");
+                    g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECTING;
                     break;
                 case HTTP_MSG_WIFI_CONNECT_SUCCESS:
                     ESP_LOGI(TAG, "HTTP_MSG_WIFI_CONNECT_SUCCESS");
+                    g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_SUCCESS;
                     break;
                 case  HTTP_MSG_WIFI_CONNECT_FAIL:
-                    ESP_LOGI(TAG, " HTTP_MSG_WIFI_CONNECT_FAIL");
+                    ESP_LOGI(TAG, "HTTP_MSG_WIFI_CONNECT_FAIL");
+                    g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_FAILED;
+                    break;
+                case  HTTP_MSG_WIFI_USER_DISCONNECT:
+                    ESP_LOGI(TAG, "HTTP_MSG_WIFI_USER_DISCONNECT");
+                    g_wifi_connect_status = HTTP_WIFI_STATUS_DISCONNECTED;
                     break;
                 case HTTP_MSG_OTA_UPDATE_SUCCESS:
                     ESP_LOGI(TAG, "HTTP_MSG_OTA_UPDATE_SUCCESS");
@@ -293,6 +304,7 @@ esp_err_t http_server_OTA_status_handler(httpd_req_t *req)
 
     return ESP_OK;
 }
+
 /**
  * @brief dht sensor reading JSON handler responds with DHT22 sensor data
  * @param req HTTP request for which the uri needs to be handled
@@ -301,10 +313,8 @@ esp_err_t http_server_OTA_status_handler(httpd_req_t *req)
 static esp_err_t http_server_get_dht_sensor_readings_json_handler(httpd_req_t *req)
 {
     ESP_LOGI(TAG, "/dhtSensor.json requested");
-
     char dhtSensorJSON[100];
     sprintf(dhtSensorJSON, "{\"temp\":\"%.1f\",\"humidity\":\"%.1f\"}", getTemperature(), getHumidity());
-    //sprintf(dhtSensorJSON, "{\"temp\":\"0.25\",\"humidity\":\"0.44\"}");
     
     // Set headers: JSON content, no caching, allow CORS
     httpd_resp_set_type(req, "application/json");
@@ -317,6 +327,127 @@ static esp_err_t http_server_get_dht_sensor_readings_json_handler(httpd_req_t *r
     }
 
     return ESP_OK;    
+}
+
+/**
+ * @brief wifiConnect.json handler is triggered after the connect button is pressed
+ * and handles recieving the SSID and password entered by user
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_wifi_connect_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "/wifiConnect.json requested");
+    size_t len_ssid = 0, len_pass = 0;
+    char *ssid_str = NULL, *pass_str = NULL;
+
+    //get SSID header
+    len_ssid = httpd_req_get_hdr_value_len(req, "my-connect-ssid") + 1;
+    if(len_ssid > 1)
+    {
+        ssid_str = malloc(len_ssid);
+        if(httpd_req_get_hdr_value_str(req, "my-connect-ssid", ssid_str, len_ssid) == ESP_OK)
+        {
+            ESP_LOGI(TAG, "http_server_wifi_connect_json_handler: Found Header => my-connect-ssid: %s", ssid_str);
+        }
+    }
+    //get password header
+    len_pass = httpd_req_get_hdr_value_len(req, "my-connect-pwd") + 1;
+    if(len_pass > 1)
+    {
+        pass_str = malloc(len_pass);
+        if(httpd_req_get_hdr_value_str(req, "my-connect-pwd", pass_str, len_pass) == ESP_OK)
+        {
+            ESP_LOGI(TAG, "http_server_wifi_connect_json_handler: Found Header => my-connect-pass: %s", pass_str);
+        }
+    }
+    //update the wifi network configuration and let the wifi app know
+    wifi_config_t* wifi_config = wifi_app_get_wifi_config();
+    memset(wifi_config, 0x00, sizeof(wifi_config_t));
+    if (ssid_str != NULL) {
+        //use bounded copy instead of memcpy, which can overflow // -1 for null termination 
+        strncpy((char*)wifi_config->sta.ssid, ssid_str, sizeof(wifi_config->sta.ssid) - 1);
+        ESP_LOGI(TAG, "SSID: %s", wifi_config->sta.ssid);
+    }
+
+    if (pass_str != NULL) {
+        memcpy(wifi_config->sta.password, pass_str, len_pass);
+        strncpy((char*)wifi_config->sta.password, pass_str, sizeof(wifi_config->sta.password) - 1);
+        ESP_LOGI(TAG, "PASS: %s", wifi_config->sta.password);
+    }
+    wifi_app_send_message(WIFI_APP_MSG_CONNECTING_FROM_HTTP_SERVER);
+
+    free(ssid_str);
+    free(pass_str);
+
+    return ESP_OK;
+}
+
+/**
+ * @brief wifiConnectStatus handler updates the connection for the web page.
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_wifi_connect_status_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "/wifiConnectStatus requested");
+    char statusJSON[100];
+    sprintf(statusJSON, "{\"wifi_connect_status\":%d}", g_wifi_connect_status);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, statusJSON, strlen(statusJSON));
+
+    return ESP_OK;
+}
+
+/**
+ * @brief wifiConnectInfo handler updates the connected wifi info for the web page.
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_get_wifi_connect_info_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "/wifiConnectInfo requested");
+    char ipInfoJSON[200];
+    memset(ipInfoJSON, 0x00, sizeof(ipInfoJSON));
+
+    char ip[IP4ADDR_STRLEN_MAX];
+    char netmask[IP4ADDR_STRLEN_MAX];
+    char gateway[IP4ADDR_STRLEN_MAX];    
+
+    if(g_wifi_connect_status == HTTP_WIFI_STATUS_CONNECT_SUCCESS)
+    {
+        //get ap info and put it into wifi_data struct
+        wifi_ap_record_t wifi_data;
+        ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_data));
+        char* ssid = (char*)wifi_data.ssid;
+        
+        //get netif info from wifi_app.c side, populate predefined variables
+        esp_netif_ip_info_t ip_info;
+        ESP_ERROR_CHECK(esp_netif_get_ip_info(esp_netif_station, &ip_info));
+        esp_ip4addr_ntoa(&ip_info.ip, ip, IP4ADDR_STRLEN_MAX);
+        esp_ip4addr_ntoa(&ip_info.netmask, netmask, IP4ADDR_STRLEN_MAX);
+        esp_ip4addr_ntoa(&ip_info.gw, gateway, IP4ADDR_STRLEN_MAX);
+
+        sprintf(ipInfoJSON, "{\"ip\":\"%s\",\"netmask\":\"%s\",\"gateway\":\"%s\",\"ap\":\"%s\"}", ip, netmask, gateway, ssid);
+    }
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, ipInfoJSON, strlen(ipInfoJSON));
+
+    return ESP_OK;
+}
+
+/**
+ * @brief wifiDisconnect responds by sending a msg to the wifi app to disconnect
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_wifi_disconnect_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "WifiDisconnect.json requested");
+
+    wifi_app_send_message(WIFI_APP_MSG_USER_REQUESTED_STA_DISCONNECT);
+    
+    return ESP_OK;
 }
 
 /**
@@ -434,7 +565,42 @@ static httpd_handle_t http_server_configure(void)
             .user_ctx = NULL
         };
         httpd_register_uri_handler(http_server_handle, &dht_sensor_json);
-        ESP_LOGI(TAG, "Registered /dhtSensor.json handler");
+
+        //register wifiConnect.json handler
+        httpd_uri_t wifi_connect_json = {
+            .uri = "/wifiConnect.json",
+            .method = HTTP_POST,
+            .handler = http_server_wifi_connect_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &wifi_connect_json);
+
+        //register wifiConnectStatus.json handler
+        httpd_uri_t wifi_connect_status_json = {
+            .uri = "/wifiConnectStatus.json",
+            .method = HTTP_GET, //TODO: Should this be GET?
+            .handler = http_server_wifi_connect_status_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &wifi_connect_status_json);       
+
+        //register wifiConnectInfo.json handler
+        httpd_uri_t wifi_connect_info_json = {
+            .uri = "/wifiConnectInfo.json",
+            .method = HTTP_GET, //TODO: Should this be GET?
+            .handler = http_server_get_wifi_connect_info_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &wifi_connect_info_json);       
+
+        //register wifiDisconnect.json handler
+        httpd_uri_t wifi_disconnect_json = {
+            .uri = "/wifiDisconnect.json",
+            .method = HTTP_DELETE, //TODO: Should this be GET?
+            .handler = http_server_wifi_disconnect_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &wifi_disconnect_json);       
 
         return http_server_handle;
     }
