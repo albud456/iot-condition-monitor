@@ -9,8 +9,10 @@ var wifiConnectInterval = null;
  * Initialize functions here.
  */
 $(document).ready(function(){
+    getSSID();
 	getUpdateStatus();
 	startDHTSensorInterval();
+    startLocalTimeInterval();
     getConnectInfo();
     $("#connect_wifi").on("click", function(){
         checkCredentials();
@@ -181,6 +183,12 @@ function getWiFiConnectStatus()
             stopWiFiConnectStatusInterval();  
             getConnectInfo();
         }
+        else if (response.wifi_connect_status == 4)
+        {
+            document.getElementById("wifi_connect_status").innerHTML = "<h4 class='rd'> Disconnected! </h4>";
+            //getConnectInfo();
+        }
+
     }
 }
 /**
@@ -292,4 +300,31 @@ function disconnectWifi()
     });
     //update the webpage
     setTimeout("location.reload(true);", 2000);
+}
+
+/**
+ * sets the interval for displaying local time
+ */
+function startLocalTimeInterval()
+{
+    setInterval(getLocalTime, 10000);
+}
+
+/**
+ * gets the local time. server must be connected to internet
+ */
+function getLocalTime()
+{
+    $.getJSON('/localTime.json', function(data) {
+        $("#local_time").text(data["time"]);
+    });
+}
+/**
+ * get the esp32's access point ssid to display on webpage
+ */
+function getSSID()
+{
+    $.getJSON('/apSSID.json', function(data){
+        $("#ap_ssid").text(data["ssid"]);
+    });
 }

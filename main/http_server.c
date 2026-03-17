@@ -20,6 +20,7 @@
 #include "http_server.h"
 #include "wifi_app.h"
 #include "tasks_common.h"
+#include "sntp_time_sync.h"
 
 
 //Tag used for ESP serial console messages
@@ -30,6 +31,9 @@ static int g_wifi_connect_status = NONE;
 
 //firmware update status
 static int g_fw_update_status = OTA_UPDATE_PENDING;
+
+//local time status
+static bool g_is_local_time_set = false;
 
 //HTTP server handle
 static httpd_handle_t http_server_handle = NULL;
@@ -124,6 +128,11 @@ static void http_server_monitor(void *parameter)
                 case HTTP_MSG_OTA_UPDATE_INITIALIZED:
                     ESP_LOGI(TAG, "HTTP_MSG_OTA_UPDATE_INITIALIZED");
                     break;
+                case HTTP_MSG_TIME_SYNC_SERVICE_INITIALIZED:
+                    ESP_LOGI(TAG, "HTTP_MSG_TIME_SYNC_INITIALIZE");
+                    g_is_local_time_set = true;
+                    break;
+
                 default:
                     break;
             }
@@ -384,7 +393,7 @@ static esp_err_t http_server_wifi_connect_json_handler(httpd_req_t *req)
 }
 
 /**
- * @brief wifiConnectStatus handler updates the connection for the web page.
+ * @brief wifiConnectStatus.json handler updates the connection for the web page.
  * @param req HTTP request for which the uri needs to be handled
  * @return ESP_OK
  */
@@ -400,7 +409,7 @@ static esp_err_t http_server_wifi_connect_status_json_handler(httpd_req_t *req)
 }
 
 /**
- * @brief wifiConnectInfo handler updates the connected wifi info for the web page.
+ * @brief wifiConnectInfo.json handler updates the connected wifi info for the web page.
  * @param req HTTP request for which the uri needs to be handled
  * @return ESP_OK
  */
@@ -437,7 +446,7 @@ static esp_err_t http_server_get_wifi_connect_info_json_handler(httpd_req_t *req
 }
 
 /**
- * @brief wifiDisconnect responds by sending a msg to the wifi app to disconnect
+ * @brief wifiDisconnect.json responds by sending a msg to the wifi app to disconnect
  * @param req HTTP request for which the uri needs to be handled
  * @return ESP_OK
  */
@@ -447,6 +456,47 @@ static esp_err_t http_server_wifi_disconnect_json_handler(httpd_req_t *req)
 
     wifi_app_send_message(WIFI_APP_MSG_USER_REQUESTED_STA_DISCONNECT);
     
+    return ESP_OK;
+}
+
+/**
+ * @brief localTime.json responds by sending the local time from the sntp module
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_get_local_time_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "./localTime.json requested");
+    char localTimeJSON[100] = {0};
+    if(g_is_local_time_set)
+    {
+        sprintf(localTimeJSON, "{\"time\":\"%s\"}", sntp_time_sync_get_time());
+    }
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, localTimeJSON, strlen(localTimeJSON));
+
+    return ESP_OK;
+}
+
+/**
+ * @brief apSSID.json responds by sending the AP SSID
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+static esp_err_t http_server_get_ap_ssid_json_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "./apSSID.json Requested");
+    char ssidJSON[50];
+    
+    wifi_config_t *wifi_config = wifi_app_get_wifi_config();
+    esp_wifi_get_config(ESP_IF_WIFI_AP, wifi_config);
+
+    char * ssid = (char*)wifi_config->ap.ssid;
+    sprintf(ssidJSON, "{\"ssid\":\"%s\"}", ssid);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, ssidJSON, strlen(ssidJSON));
+
     return ESP_OK;
 }
 
@@ -587,7 +637,7 @@ static httpd_handle_t http_server_configure(void)
         //register wifiConnectInfo.json handler
         httpd_uri_t wifi_connect_info_json = {
             .uri = "/wifiConnectInfo.json",
-            .method = HTTP_GET, //TODO: Should this be GET?
+            .method = HTTP_GET, 
             .handler = http_server_get_wifi_connect_info_json_handler,
             .user_ctx = NULL
         };
@@ -596,11 +646,29 @@ static httpd_handle_t http_server_configure(void)
         //register wifiDisconnect.json handler
         httpd_uri_t wifi_disconnect_json = {
             .uri = "/wifiDisconnect.json",
-            .method = HTTP_DELETE, //TODO: Should this be GET?
+            .method = HTTP_DELETE, 
             .handler = http_server_wifi_disconnect_json_handler,
             .user_ctx = NULL
         };
         httpd_register_uri_handler(http_server_handle, &wifi_disconnect_json);       
+
+        //register localTime.json handler
+        httpd_uri_t local_time_json = {
+            .uri = "/localTime.json",
+            .method = HTTP_GET, 
+            .handler = http_server_get_local_time_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &local_time_json);   
+
+        //register apSSID.json handler
+        httpd_uri_t ap_ssid_json = {
+            .uri = "/apSSID.json",
+            .method = HTTP_GET, 
+            .handler = http_server_get_ap_ssid_json_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(http_server_handle, &ap_ssid_json);   
 
         return http_server_handle;
     }

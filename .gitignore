@@ -19,7 +19,7 @@
 /sdkconfig
 /sdkconfig.old
 /sdkconfig.defaults.user
-
+sdkconfig.defaults
 # -------------------------
 # ESP-IDF temporary / intermediate files
 # -------------------------

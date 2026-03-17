@@ -26,6 +26,9 @@
 //For serial console messages and debugging
 static const char TAG[] = "wifi_app";
 
+//Wifi app callback
+static wifi_connected_event_callback_t wifi_connected_event_cb;
+
 //Used for returning wifi config
 wifi_config_t *wifi_config = NULL;
 
@@ -285,6 +288,12 @@ static void wifi_app_task(void *pvParameter)
                     {
                         xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
                     }
+                    //check callback
+                    if(wifi_connected_event_cb)
+                    {
+                        wifi_app_trigger_callback();
+                    }
+
                     //Indicate wifi connected via LED
                     rgb_led_wifi_connected();
 
@@ -359,6 +368,17 @@ wifi_config_t* wifi_app_get_wifi_config(void)
 {
     return wifi_config;
 }
+
+void wifi_app_set_callback(wifi_connected_event_callback_t cb)
+{
+    wifi_connected_event_cb = cb;
+}
+
+void wifi_app_trigger_callback(void)
+{
+    wifi_connected_event_cb();
+}
+
 
 void wifi_app_start(void)
 {

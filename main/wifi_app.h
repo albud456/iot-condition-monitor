@@ -16,8 +16,11 @@
 #include "freertos/task.h"
 #include "esp_wifi.h"
 
+//Callback typedef
+typedef void (*wifi_connected_event_callback_t)(void);
+
 //Wifi app settings
-#define WIFI_AP_SSID            "ESP_Monitor_Device"    //access point name
+#define WIFI_AP_SSID            "IOT_TEMP_MONITOR"      //access point name
 #define WIFI_AP_PASSWORD        "123456789"             //password to connect
 #define WIFI_AP_CHANNEL         1                       //ap channel used
 #define WIFI_AP_SSID_HIDDEN     0                       //0 - hidden, 1 - visible
@@ -77,5 +80,17 @@ void wifi_app_start(void);
  * 
  */
 wifi_config_t* wifi_app_get_wifi_config(void);
+
+/**
+ * @brief sets the callback function
+ * 
+ */
+void wifi_app_set_callback(wifi_connected_event_callback_t cb);
+
+/**
+ * @brief calls the callback function
+ * 
+ */
+void wifi_app_trigger_callback(void);
 
 #endif /*WIFI_APP_H_*/
